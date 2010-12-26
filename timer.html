@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Timer</title>
+    <meta charset="utf-8">
+    <style type="text/css">
+        body {
+            text-align:center;
+        }
+        #timer {
+            font-size: 80px;
+            font-family: arial;
+            margin:0 auto;
+        }
+        input[type=number] {
+            width:4em;
+        }
+    </style>
+    <script src="jquery-1.4.4.min.js"></script>
+    <script>
+        //global stuff
+        var timer_id = null;// for clearInterval
+        var timer={
+            seconds:0,
+            audio:null,
+            running:null,
+            play_button: null,
+
+            tick: function(){
+                if (this.check_status()){
+                    this.seconds -= 1;
+                    this.update_html();
+                } else {
+                    this.play_sound();
+                    clearInterval(timer_id);
+                }
+            },
+
+            check_status:function(){
+                if (this.seconds==0){
+                    return false; // Stop
+                }else{
+                    return true; // OK, we can continue tick()
+                }
+            },
+
+            update_html: function(){
+                var hours = parseInt(this.seconds/3600);
+                var minutes = parseInt((this.seconds%3600)/60);
+                var seconds = parseInt(this.seconds%60);
+                hours = hours >= 10? hours : '0'+ hours
+                minutes = minutes >= 10? minutes : '0'+ minutes
+                seconds = seconds >= 10? seconds : '0'+ seconds
+                this.dom.html(hours + ':' + minutes + ':' + seconds)
+            },
+
+            play_sound: function(){
+                if (typeof(this.audio.play)=='undefined'){
+                    alert('Now is the time. '); //Just alert() for IE at the moment.
+                }else{
+                    this.audio.play();
+                }
+            },
+
+            start: function(){
+                clearInterval(timer_id)
+                if (this.seconds>0) {
+                    timer.update_html()
+                    timer_id = setInterval('timer.tick()', 1000)
+                    this.running = true;
+                    this.update_play_button()
+                }
+            },
+
+            clear: function(){
+                clearInterval(timer_id);
+                timer.seconds = 0;
+                this.running = false;
+                timer.update_html();
+                this.update_play_button()
+            },
+
+            pause: function(){
+                clearInterval(timer_id)
+                this.running = false;
+                this.update_play_button()
+            },
+
+            toggle: function(){
+                if (this.running){
+                    this.pause()
+                }else{
+                    this.start()
+                }
+            },
+
+            update_play_button: function(){
+                if(this.running){
+                    this.play_button.html('&#x2590;&#x2590;');
+                }else{
+                    this.play_button.html('&#x25BA');
+                }
+            },
+
+            init_play_button: function($button){
+                this.play_button = $button;
+                this.update_play_button()
+            }
+
+        };
+
+        function init(){
+            var container = $('#container')
+            timer.dom = $('<div id="timer">loading &hellip;</div>').prependTo(container);
+            var controls = $('<div id="controls"></div>').appendTo(container)
+            // The controls to set time
+
+            var time_controls = $('<span id="time-controls"></span>').appendTo(controls);
+            var set_time_control = $('<span id="set-time-controls"></span>').appendTo(time_controls);
+            // The shortcuts controls
+            var shortcuts = $('<span>Shortcuts: </span>').appendTo(set_time_control)
+            var s1 = $('<button>10 minutes</button>').click(function(){
+                timer.seconds=600; timer.start();
+                show_function_ui();
+            }).appendTo(set_time_control);
+            var s2 = $('<button>30 minutes</button>').click(function(){
+                timer.seconds=1800; timer.start();
+                show_function_ui();
+            }).appendTo(set_time_control);
+            var s3 = $('<button>1 hour</button>').click(function(){
+                timer.seconds=3600; timer.start();
+                show_function_ui();
+            }).appendTo(set_time_control);
+            var s4 = $('<button>1 second</button>').click(function(){
+                timer.seconds=1; timer.start();
+                show_function_ui();
+            }).appendTo(set_time_control);
+
+            $('<span>or: </span>').appendTo(set_time_control)
+
+            var manual_time = $('<span id="manual-time">\
+                          <input type="number" id="hours" min="0" max="24" value="0" />\
+                          :<input type="number" id="minutes" min="0" max="59" value="5" />\
+                          :<input type="number" id="seconds" min="0" max="59" value="0" />\
+                          <button id="ok-button">OK</button>\
+                          <button id="cancel-button">Cancel</button>\
+                          </span>').hide().appendTo(set_time_control);
+            var set_time_button = $('<span><button>Specify</button></span>').appendTo(time_controls);
+            //show and hide the buttons
+            function toggle_manual_time_ui(){
+                manual_time.toggle(); set_time_button.toggle();
+            }
+            function show_time_ui(){
+                time_controls.show();
+                function_controls.hide();
+            }
+            function show_function_ui(){
+                time_controls.hide();
+                function_controls.show();
+            }
+            set_time_button.click(toggle_manual_time_ui)
+            $('#cancel-button').click(toggle_manual_time_ui)
+            $('#ok-button').click(function(){
+                toggle_manual_time_ui();
+                show_function_ui();
+                timer.seconds = parseInt($('#hours').val())*3600||0 +parseInt($('#minutes').val())*60||0 +
+                    parseInt($('#seconds').val())||0;
+                timer.start();
+            })
+
+            function_controls = $('<div id="function-controls"></div>').hide().appendTo(controls)
+            var p = $('<button id="play-button"></button>')
+            timer.init_play_button(p)
+            p.click(function(){
+                timer.toggle();
+            }).appendTo(function_controls);
+            var c = $('<button>clear</button>').click(function(){ timer.clear()}).appendTo(function_controls);
+            var m = $('<button>modify time</button>').click(
+                function(){ time_controls.toggle();}
+            ).appendTo(function_controls);
+
+            var y = ($(document).height() - container.height())/2 - 80;
+            if (y>0){
+                container.css({'margin-top': y})
+            }
+            //listen to keypress
+            $(window).bind('keypress', function(e){
+                if (e.which==32){//space
+                    timer.toggle();
+                }
+            })
+
+            var help_text = $('<p>Use the SPACE key to start/stop the timer.</p>').appendTo(function_controls)
+
+            timer.audio = $('#audio')[0];
+            timer.update_html();
+        }
+
+        $(document).ready(function(){
+            init();
+        })
+    </script>
+</head>
+<body>
+    <div id="container">
+        <audio id="audio" preload="auto">
+            <source src="doraemon.mp3" type="audio/mpeg">
+            <source src="doraemon.ogg" type="audio/ogg">
+            <p>Sorry, your browser (IE most likely) does not support audio nativaly. We'll use an message box instead of audio notification.</p>
+        </audio>
+    </div>
+</body>
+</html>

@@ -196,8 +196,17 @@
             timer.update_html();
         }
 
+        function confirm_to_quit(e){
+            if(timer.seconds){
+                return 'Are you sure to quit?'
+            }else{
+                return True
+            }
+        }
+
         $(document).ready(function(){
             init();
+            $(window).bind('beforeunload', confirm_to_quit)
         })
     </script>
 </head>

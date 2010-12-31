@@ -31,7 +31,7 @@
                     this.seconds -= 1;
                     this.update_html();
                 } else {
-                    this.play_sound();
+                    this.notify();
                     clearInterval(timer_id);
                 }
             },
@@ -62,7 +62,13 @@
                 }
             },
 
+            notify:function(){
+                this.dom.css('color', 'red')
+                this.play_sound();
+            },
+
             start: function(){
+                this.dom.css('color', 'black')
                 clearInterval(timer_id)
                 if (this.seconds>0) {
                     timer.update_html()
